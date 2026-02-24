@@ -16,8 +16,9 @@ app.add_middleware(
 )
 
 # Static files & templates
-app.mount("/static", StaticFiles(directory="static"), name="static")
+
 templates = Jinja2Templates(directory="templates")
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # Request body model
 class ChatRequest(BaseModel):
