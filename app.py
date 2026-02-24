@@ -39,7 +39,7 @@ def chat(body: ChatRequest):
     try:
         resp = requests.post(
             WEBHOOK,
-            json={"chatInput": query},  # IMPORTANT: matches your n8n input field
+            json={"query": query},  # IMPORTANT: matches your n8n input field
             timeout=30
         )
 
