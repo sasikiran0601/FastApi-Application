@@ -1,28 +1,45 @@
-from flask import Flask, render_template, request, jsonify
-from flask_cors import CORS
+from fastapi import FastAPI, Request, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.templating import Jinja2Templates
+from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel
 import requests
 
-app = Flask(__name__)
-CORS(app)  # Allow frontend to call the API
+app = FastAPI()
 
-@app.route("/")
-def index():
-    return render_template("index.html")
+# CORS — allow frontend to call the API
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
-@app.route("/chat", methods=["POST"])
-def chat():
+# Static files & templates
+app.mount("/static", StaticFiles(directory="static"), name="static")
+templates = Jinja2Templates(directory="templates")
+
+# Request body model
+class ChatRequest(BaseModel):
+    query: str
+
+WEBHOOK = "https://n8n.n8nautomations.me/webhook/51b66e9e-15d3-4418-a304-030d357e35a2"
+
+@app.get("/")
+def index(request: Request):
+    return templates.TemplateResponse("index.html", {"request": request})
+
+@app.post("/chat")
+def chat(body: ChatRequest):
+    query = body.query.strip()
+
+    if not query:
+        raise HTTPException(status_code=400, detail="Empty query")
+
     try:
-        data = request.get_json(force=True)
-        query = data.get("query", "").strip()
-
-        if not query:
-            return jsonify({"error": "Empty query"}), 400
-
-        WEBHOOK = "https://n8n.n8nautomations.me/webhook/51b66e9e-15d3-4418-a304-030d357e35a2"
-
         resp = requests.post(
             WEBHOOK,
-            json={"chatInput": query},  # IMPORTANT match your n8n input
+            json={"chatInput": query},  # IMPORTANT: matches your n8n input field
             timeout=30
         )
 
@@ -32,14 +49,15 @@ def chat():
         try:
             result = resp.json()
             answer = result if isinstance(result, str) else result.get("output", result)
-        except:
+        except Exception:
             answer = resp.text
 
-        return jsonify({"answer": answer})
+        return {"answer": answer}
 
     except Exception as e:
         print("ERROR:", str(e))
-        return jsonify({"error": str(e)}), 500
+        raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":
-    app.run(debug=True, port=5000)
+    import uvicorn
+    uvicorn.run("app:app", host="0.0.0.0", port=8000, reload=True)
