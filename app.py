@@ -58,3 +58,6 @@ def chat(body: ChatRequest):
         print("ERROR:", str(e))
         raise HTTPException(status_code=500, detail=str(e))
 
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run("app:app", host="0.0.0.0", port=8000, reload=True)
