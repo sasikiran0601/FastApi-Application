@@ -4,6 +4,8 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- Upgrade any accidental http:// sub-resource requests to https:// (Mixed Content safety net) -->
+    <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests" />
     <title>MedAssist AI</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
@@ -110,7 +112,7 @@
             const typingEl = showTyping();
 
             try {
-                // Call Flask /chat endpoint
+                // Call FastAPI /chat endpoint
                 const res = await fetch('/chat', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -127,7 +129,7 @@
                 }
             } catch (err) {
                 typingEl.remove();
-                addBubble('Could not reach the server. Is Flask running?', 'bot');
+                addBubble('Could not reach the server. Please try again shortly.', 'bot');
             }
         }
 
