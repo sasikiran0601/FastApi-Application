@@ -279,8 +279,8 @@
                         <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
                     </svg>
                     <div class="session-meta">
-                        <span class="session-title">${escHtml(s.title)}</span>
-                        <span class="session-date">${formatDate(s.createdAt)}</span>
+                        <span class="session-id">${escHtml(s.shortId || s.id.slice(0, 13))}</span>
+                        <span class="session-date">${formatSessionDate(s.createdAt)}</span>
                     </div>
                     <button class="session-del" title="Delete">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
@@ -304,7 +304,7 @@
                 const s = sessions.find(x => x.id === id);
                 if (!s) return;
                 activeId = id;
-                chatTitle.textContent = s.title;
+                chatTitle.textContent = s.shortId || s.id.slice(0, 13);
                 chatArea.innerHTML = '';
                 s.messages.forEach(m => renderBubble(m.role, m.text, m.ts, false));
                 scrollBottom();
@@ -381,10 +381,17 @@
                 if (!text) return;
 
                 if (!activeId) {
-                    const s = { id: crypto.randomUUID(), title: text.length > 42 ? text.slice(0, 42) + '…' : text, createdAt: Date.now(), messages: [] };
+                    const sid = genShortId();
+                    const s = {
+                        id: crypto.randomUUID(),
+                        shortId: sid,
+                        title: text.length > 42 ? text.slice(0, 42) + '…' : text,
+                        createdAt: Date.now(),
+                        messages: []
+                    };
                     sessions.push(s);
                     activeId = s.id;
-                    chatTitle.textContent = s.title;
+                    chatTitle.textContent = sid;
                 }
 
                 const es = document.getElementById('emptyState');
@@ -440,7 +447,32 @@
             // ═══ HELPERS ═══
             function scrollBottom() { requestAnimationFrame(() => chatArea.scrollTop = chatArea.scrollHeight); }
             function escHtml(t) { return t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
-            function formatDate(ts) { if (!ts) return ''; return new Date(ts).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }); }
+
+            // Generate short ID: XXXX-XXXXXXXX (4 digits + 8 alphanumeric)
+            function genShortId() {
+                const nums = String(Math.floor(1000 + Math.random() * 9000));
+                const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+                let alpha = '';
+                for (let i = 0; i < 8; i++) alpha += chars[Math.floor(Math.random() * chars.length)];
+                return nums + '-' + alpha;
+            }
+
+            // Format for sidebar: "MARCH 2\n2-03-2026 | 20:11"
+            function formatSessionDate(ts) {
+                if (!ts) return '';
+                const d = new Date(ts);
+                const months = ['JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE', 'JULY', 'AUGUST', 'SEPTEMBER', 'OCTOBER', 'NOVEMBER', 'DECEMBER'];
+                const month = months[d.getMonth()];
+                const day = d.getDate();
+                const dd = String(day);
+                const mm = String(d.getMonth() + 1).padStart(2, '0');
+                const yyyy = d.getFullYear();
+                const hh = String(d.getHours()).padStart(2, '0');
+                const min = String(d.getMinutes()).padStart(2, '0');
+                return `${month} ${day} · ${dd}-${mm}-${yyyy} | ${hh}:${min}`;
+            }
+
+            // Format for message timestamps
             function formatTime(ts) { return new Date(ts).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }); }
 
             renderSessions();

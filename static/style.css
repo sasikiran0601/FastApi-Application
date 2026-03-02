@@ -180,7 +180,8 @@ body {
     overflow-y: auto;
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: 4px;
+    /* visually ~12px with padding */
 }
 
 .sessions-list::-webkit-scrollbar {
@@ -199,11 +200,12 @@ body {
     padding: 24px 0;
 }
 
+/* ── Session item ── */
 .session-item {
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: 10px 12px;
+    padding: 12px 16px;
     border-radius: 10px;
     cursor: pointer;
     transition: background 0.18s;
@@ -218,7 +220,7 @@ body {
     background: rgba(30, 136, 229, 0.12);
 }
 
-.session-item.active .session-title {
+.session-item.active .session-id {
     color: var(--primary-light);
 }
 
@@ -249,41 +251,51 @@ body {
     min-width: 0;
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: 3px;
 }
 
-.session-title {
+/* Conversation ID — bold */
+.session-id {
     font-size: 0.82rem;
-    font-weight: 500;
+    font-weight: 600;
     color: var(--text-dim);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-family: 'Inter', monospace;
+    letter-spacing: 0.02em;
+}
+
+/* Date + time — muted */
+.session-date {
+    font-size: 0.68rem;
+    color: var(--text-muted);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
 }
 
-.session-date {
-    font-size: 0.7rem;
-    color: var(--text-muted);
-}
-
+/* Delete button — desktop: show on hover */
 .session-del {
     flex-shrink: 0;
     background: none;
     border: none;
     color: var(--text-muted);
     cursor: pointer;
-    padding: 3px;
-    border-radius: 5px;
+    width: 32px;
+    height: 32px;
+    min-width: 32px;
+    border-radius: 6px;
     display: flex;
     align-items: center;
     justify-content: center;
     opacity: 0;
-    transition: opacity 0.15s, color 0.15s;
+    transition: opacity 0.15s, color 0.15s, background 0.15s;
 }
 
 .session-del svg {
-    width: 13px;
-    height: 13px;
+    width: 14px;
+    height: 14px;
 }
 
 .session-item:hover .session-del {
@@ -292,6 +304,20 @@ body {
 
 .session-del:hover {
     color: #F87171;
+    background: rgba(248, 113, 113, 0.1);
+}
+
+/* Delete button — MOBILE: always visible */
+@media (max-width: 768px) {
+    .session-del {
+        opacity: 0.6;
+        /* always visible, slightly muted */
+    }
+
+    .session-del:active {
+        opacity: 1;
+        color: #F87171;
+    }
 }
 
 .sidebar-footer {
