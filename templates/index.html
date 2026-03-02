@@ -1,164 +1,450 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <!-- Upgrade any accidental http:// sub-resource requests to https:// (Mixed Content safety net) -->
     <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests" />
-    <title>MedAssist AI</title>
+    <title>MedAssist AI — Medical RAG Chatbot</title>
+    <meta name="description"
+        content="Premium AI-powered medical assistant. Ask any medical question and get instant, reliable answers." />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Poppins:wght@600;700&display=swap"
+        rel="stylesheet" />
     <link rel="stylesheet" href="{{ url_for('static', path='style.css') }}" />
 </head>
 
 <body>
 
-    <div class="app">
+    <!-- Overlay -->
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
 
-        <!-- Header -->
-        <header class="header">
-            <div class="logo-wrap">
-                <svg class="logo-svg" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <rect width="64" height="64" rx="18" fill="url(#lg)" />
-                    <rect x="26" y="12" width="12" height="40" rx="5" fill="white" />
-                    <rect x="12" y="26" width="40" height="12" rx="5" fill="white" />
-                    <defs>
-                        <linearGradient id="lg" x1="0" y1="0" x2="64" y2="64">
-                            <stop stop-color="#06b6d4" />
-                            <stop offset="1" stop-color="#3b82f6" />
-                        </linearGradient>
-                    </defs>
-                </svg>
-                <div>
-                    <h1 class="logo-title">MedAssist <span>AI</span></h1>
-                    <p class="logo-sub">Medical RAG Chatbot</p>
-                </div>
-            </div>
-            <button class="new-chat-btn" id="newChatBtn" title="Start a new conversation">
+    <!-- Sidebar (hidden by default) -->
+    <aside class="sidebar" id="sidebar" aria-hidden="true">
+        <div class="sidebar-inner">
+            <button class="new-chat-btn" id="newChatBtn">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
                     <line x1="12" y1="5" x2="12" y2="19" />
                     <line x1="5" y1="12" x2="19" y2="12" />
                 </svg>
-                New Chat
+                New Conversation
             </button>
+            <div class="sidebar-divider"></div>
+            <div class="sessions-label">Recent Conversations</div>
+            <div class="sessions-list" id="sessionsList">
+                <p class="no-sessions">No conversations yet</p>
+            </div>
+            <div class="sidebar-footer">
+                <div class="sidebar-divider"></div>
+                <p class="sidebar-disclaimer">Educational purposes only.<br />Consult a healthcare professional.</p>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main -->
+    <main class="main">
+
+        <!-- Header (64px) -->
+        <header class="topbar">
+            <!-- Left: MedAssist logo toggle -->
+            <div class="topbar-left">
+                <button class="logo-toggle" id="logoToggle" title="Toggle sidebar" aria-label="Toggle sidebar">
+                    <svg class="logo-cross" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <rect width="48" height="48" rx="14" fill="url(#logoCross)" />
+                        <rect x="20" y="10" width="8" height="28" rx="3.5" fill="white" />
+                        <rect x="10" y="20" width="28" height="8" rx="3.5" fill="white" />
+                        <defs>
+                            <linearGradient id="logoCross" x1="0" y1="0" x2="48" y2="48">
+                                <stop stop-color="#1E88E5" />
+                                <stop offset="1" stop-color="#00BCD4" />
+                            </linearGradient>
+                        </defs>
+                    </svg>
+                    <span class="logo-label">MedAssist <span class="logo-ai">AI</span></span>
+                </button>
+            </div>
+
+            <!-- Center: conversation title -->
+            <div class="topbar-center">
+                <span class="topbar-title" id="chatTitle">New Conversation</span>
+            </div>
+
+            <!-- Right: theme toggle -->
+            <div class="topbar-right">
+                <button class="theme-toggle" id="themeToggle" title="Toggle theme" aria-label="Toggle theme">
+                    <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round">
+                        <circle cx="12" cy="12" r="5" />
+                        <line x1="12" y1="1" x2="12" y2="3" />
+                        <line x1="12" y1="21" x2="12" y2="23" />
+                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+                        <line x1="1" y1="12" x2="3" y2="12" />
+                        <line x1="21" y1="12" x2="23" y2="12" />
+                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
+                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+                    </svg>
+                    <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+                    </svg>
+                </button>
+            </div>
         </header>
 
         <!-- Chat Area -->
-        <div class="chat-area" id="chatArea"></div>
+        <div class="chat-area" id="chatArea">
+            <!-- Empty state: TYPOGRAPHY ONLY, no center icon -->
+            <div class="empty-state" id="emptyState">
+                <div class="empty-content">
+                    <h2 class="hyper-text" id="hyperText" data-text="How can I help you today?"></h2>
+                    <p class="empty-sub">Ask any medical question and I'll assist you with reliable, evidence-based
+                        answers.</p>
+                    <div class="empty-chips">
+                        <button class="chip" data-query="What are the symptoms of diabetes?">Symptoms of
+                            diabetes</button>
+                        <button class="chip" data-query="How does blood pressure affect health?">Blood pressure &amp;
+                            health</button>
+                        <button class="chip" data-query="What is the recommended dose of paracetamol?">Paracetamol
+                            dosage</button>
+                    </div>
+                </div>
+            </div>
+        </div>
 
         <!-- Input -->
         <div class="input-area">
             <div class="input-box">
-                <textarea id="userInput" placeholder="Ask a medical question…" rows="1" maxlength="2000"></textarea>
-                <button class="send-btn" id="sendBtn" disabled title="Send">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                <textarea id="userInput" placeholder="Ask a medical question…" rows="1" maxlength="2000"
+                    aria-label="Message input"></textarea>
+                <button class="send-btn" id="sendBtn" disabled title="Send message" aria-label="Send">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+                        stroke-linecap="round">
                         <line x1="22" y1="2" x2="11" y2="13" />
-                        <polygon points="22 2 15 22 11 13 2 9 22 2" />
+                        <polygon points="22 2 15 22 11 13 2 9 22 2" fill="currentColor" stroke="none" />
                     </svg>
                 </button>
             </div>
-            <p class="disclaimer">For educational purposes only. Always consult a qualified healthcare professional.</p>
+            <p class="disclaimer">MedAssist AI · For educational purposes only · Always consult a qualified healthcare
+                professional</p>
         </div>
 
-    </div>
+    </main>
 
     <script>
-        // ── DOM ──
-        const chatArea = document.getElementById('chatArea');
-        const userInput = document.getElementById('userInput');
-        const sendBtn = document.getElementById('sendBtn');
-        const newChatBtn = document.getElementById('newChatBtn');
+        (() => {
+            // ═══ HYPERTEXT SCRAMBLE ANIMATION ═══
+            const ALPHABETS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+            const getRandomChar = () => ALPHABETS[Math.floor(Math.random() * 26)];
 
-        // ── New Conversation ──
-        newChatBtn.addEventListener('click', () => {
-            chatArea.innerHTML = '';
-            userInput.value = '';
-            userInput.style.height = 'auto';
-            sendBtn.disabled = true;
-            userInput.focus();
-        });
+            class HyperText {
+                constructor(el, { duration = 800, animateOnLoad = true } = {}) {
+                    this.el = el;
+                    this.text = el.dataset.text;
+                    this.duration = duration;
+                    this.chars = this.text.split('');
+                    this.iteration = 0;
+                    this.completed = false;
+                    this.el.style.cursor = 'default';
 
-        // ── Input handling ──
-        userInput.addEventListener('input', () => {
-            sendBtn.disabled = userInput.value.trim().length === 0;
-            userInput.style.height = 'auto';
-            userInput.style.height = Math.min(userInput.scrollHeight, 150) + 'px';
-        });
+                    this._buildSpans();
 
-        userInput.addEventListener('keydown', e => {
-            if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                if (!sendBtn.disabled) send();
-            }
-        });
-
-        sendBtn.addEventListener('click', send);
-
-        // ── Send message ──
-        async function send() {
-            const text = userInput.value.trim();
-            if (!text) return;
-
-            // Show user bubble
-            addBubble(text, 'user');
-
-            // Reset input
-            userInput.value = '';
-            userInput.style.height = 'auto';
-            sendBtn.disabled = true;
-
-            // Show typing dots
-            const typingEl = showTyping();
-
-            try {
-                // Call FastAPI /chat endpoint
-                const res = await fetch('/chat', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ query: text })
-                });
-
-                const data = await res.json();
-                typingEl.remove();
-
-                if (data.answer) {
-                    addBubble(data.answer, 'bot');
-                } else {
-                    addBubble('Something went wrong. Please try again.', 'bot');
+                    // Animate once on load — NO hover re-trigger
+                    if (animateOnLoad) {
+                        requestAnimationFrame(() => this.animate());
+                    }
                 }
-            } catch (err) {
-                typingEl.remove();
-                addBubble('Could not reach the server. Please try again shortly.', 'bot');
+
+                _buildSpans() {
+                    this.el.innerHTML = '';
+                    this.spans = this.chars.map((ch) => {
+                        const span = document.createElement('span');
+                        span.className = 'ht-char' + (ch === ' ' ? ' ht-space' : '');
+                        span.textContent = ch === ' ' ? '\u00A0' : ch;
+                        span.style.opacity = '0';
+                        span.style.transform = 'translateY(-8px)';
+                        this.el.appendChild(span);
+                        return span;
+                    });
+                }
+
+                animate() {
+                    // Only run once per instance
+                    if (this.completed) return;
+                    this.iteration = 0;
+                    const interval = this.duration / (this.text.length * 10);
+
+                    if (this._timer) clearInterval(this._timer);
+
+                    this._timer = setInterval(() => {
+                        this.spans.forEach((span, i) => {
+                            const ch = this.chars[i];
+                            if (ch === ' ') return;
+
+                            if (i <= this.iteration) {
+                                span.textContent = ch;
+                                span.style.opacity = '1';
+                                span.style.transform = 'translateY(0)';
+                            } else {
+                                span.textContent = getRandomChar();
+                                span.style.opacity = '0.6';
+                                span.style.transform = 'translateY(0)';
+                            }
+                        });
+
+                        this.iteration += 0.1;
+
+                        if (this.iteration >= this.text.length) {
+                            clearInterval(this._timer);
+                            this._timer = null;
+                            this.completed = true;
+                            this.spans.forEach((span, i) => {
+                                const ch = this.chars[i];
+                                span.textContent = ch === ' ' ? '\u00A0' : ch;
+                                span.style.opacity = '1';
+                                span.style.transform = 'translateY(0)';
+                            });
+                        }
+                    }, interval);
+                }
             }
-        }
 
-        // ── Add chat bubble ──
-        function addBubble(text, role) {
-            const div = document.createElement('div');
-            div.className = role === 'user' ? 'msg-user' : 'msg-bot';
-            div.textContent = text;
-            chatArea.appendChild(div);
-            scrollBottom();
-        }
+            // Init HyperText
+            const htEl = document.getElementById('hyperText');
+            if (htEl) new HyperText(htEl, { duration: 800, animateOnLoad: true });
 
-        // ── Typing indicator ──
-        function showTyping() {
-            const div = document.createElement('div');
-            div.className = 'typing';
-            div.innerHTML = `
-        <div class="typing-dot"></div>
-        <div class="typing-dot"></div>
-        <div class="typing-dot"></div>`;
-            chatArea.appendChild(div);
-            scrollBottom();
-            return div;
-        }
+            // ═══ THEME ═══
+            const html = document.documentElement;
+            const themeToggle = document.getElementById('themeToggle');
+            let theme = localStorage.getItem('ma_theme') || 'dark';
+            html.setAttribute('data-theme', theme);
+            themeToggle.addEventListener('click', () => {
+                theme = theme === 'dark' ? 'light' : 'dark';
+                html.setAttribute('data-theme', theme);
+                localStorage.setItem('ma_theme', theme);
+            });
 
-        // ── Scroll to bottom ──
-        function scrollBottom() {
-            requestAnimationFrame(() => { chatArea.scrollTop = chatArea.scrollHeight; });
-        }
+            // ═══ SIDEBAR ═══
+            const logoToggle = document.getElementById('logoToggle');
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebarOverlay');
+            let sidebarOpen = false;
+
+            function openSidebar() {
+                sidebarOpen = true;
+                sidebar.classList.add('open');
+                sidebar.setAttribute('aria-hidden', 'false');
+                overlay.classList.add('active');
+                logoToggle.classList.add('open');
+            }
+            function closeSidebar() {
+                sidebarOpen = false;
+                sidebar.classList.remove('open');
+                sidebar.setAttribute('aria-hidden', 'true');
+                overlay.classList.remove('active');
+                logoToggle.classList.remove('open');
+            }
+            logoToggle.addEventListener('click', () => sidebarOpen ? closeSidebar() : openSidebar());
+            overlay.addEventListener('click', closeSidebar);
+
+            // ═══ STORAGE ═══
+            const STORAGE_KEY = 'medassist_v2_sessions';
+            const loadSessions = () => { try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; } catch { return []; } };
+            const saveSessions = () => localStorage.setItem(STORAGE_KEY, JSON.stringify(sessions));
+
+            let sessions = loadSessions();
+            let activeId = null;
+
+            // ═══ DOM ═══
+            const chatArea = document.getElementById('chatArea');
+            const userInput = document.getElementById('userInput');
+            const sendBtn = document.getElementById('sendBtn');
+            const newChatBtn = document.getElementById('newChatBtn');
+            const sessionsList = document.getElementById('sessionsList');
+            const chatTitle = document.getElementById('chatTitle');
+
+            // ═══ SESSIONS ═══
+            function renderSessions() {
+                if (sessions.length === 0) {
+                    sessionsList.innerHTML = '<p class="no-sessions">No conversations yet</p>';
+                    return;
+                }
+                sessionsList.innerHTML = '';
+                [...sessions].reverse().forEach(s => {
+                    const item = document.createElement('div');
+                    item.className = 'session-item' + (s.id === activeId ? ' active' : '');
+                    item.innerHTML = `
+                    <svg class="session-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                    </svg>
+                    <div class="session-meta">
+                        <span class="session-title">${escHtml(s.title)}</span>
+                        <span class="session-date">${formatDate(s.createdAt)}</span>
+                    </div>
+                    <button class="session-del" title="Delete">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+                            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                        </svg>
+                    </button>`;
+                    item.addEventListener('click', e => {
+                        if (e.target.closest('.session-del')) return;
+                        loadSession(s.id);
+                        closeSidebar();
+                    });
+                    item.querySelector('.session-del').addEventListener('click', e => {
+                        e.stopPropagation();
+                        deleteSession(s.id);
+                    });
+                    sessionsList.appendChild(item);
+                });
+            }
+
+            function loadSession(id) {
+                const s = sessions.find(x => x.id === id);
+                if (!s) return;
+                activeId = id;
+                chatTitle.textContent = s.title;
+                chatArea.innerHTML = '';
+                s.messages.forEach(m => renderBubble(m.role, m.text, m.ts, false));
+                scrollBottom();
+                renderSessions();
+            }
+
+            function deleteSession(id) {
+                sessions = sessions.filter(s => s.id !== id);
+                saveSessions();
+                if (activeId === id) resetToEmpty();
+                renderSessions();
+            }
+
+            newChatBtn.addEventListener('click', () => {
+                resetToEmpty();
+                renderSessions();
+                closeSidebar();
+                userInput.focus();
+            });
+
+            function resetToEmpty() {
+                activeId = null;
+                chatTitle.textContent = 'New Conversation';
+                userInput.value = '';
+                userInput.style.height = 'auto';
+                sendBtn.disabled = true;
+                chatArea.innerHTML = '';
+                chatArea.appendChild(buildEmptyState());
+            }
+
+            function buildEmptyState() {
+                const div = document.createElement('div');
+                div.className = 'empty-state';
+                div.id = 'emptyState';
+                div.innerHTML = `
+                <div class="empty-content">
+                    <h2 class="hyper-text" id="hyperText" data-text="How can I help you today?"></h2>
+                    <p class="empty-sub">Ask any medical question and I'll assist you with reliable, evidence-based answers.</p>
+                    <div class="empty-chips">
+                        <button class="chip" data-query="What are the symptoms of diabetes?">Symptoms of diabetes</button>
+                        <button class="chip" data-query="How does blood pressure affect health?">Blood pressure &amp; health</button>
+                        <button class="chip" data-query="What is the recommended dose of paracetamol?">Paracetamol dosage</button>
+                    </div>
+                </div>`;
+                // HyperText
+                const h = div.querySelector('.hyper-text');
+                if (h) new HyperText(h, { duration: 800, animateOnLoad: true });
+                // Chips
+                div.querySelectorAll('.chip').forEach(c => {
+                    c.addEventListener('click', () => { userInput.value = c.dataset.query; userInput.dispatchEvent(new Event('input')); send(); });
+                });
+                return div;
+            }
+
+            // Initial chip bindings
+            document.querySelectorAll('.chip').forEach(c => {
+                c.addEventListener('click', () => { userInput.value = c.dataset.query; userInput.dispatchEvent(new Event('input')); send(); });
+            });
+
+            // ═══ INPUT ═══
+            userInput.addEventListener('input', () => {
+                sendBtn.disabled = userInput.value.trim().length === 0;
+                userInput.style.height = 'auto';
+                userInput.style.height = Math.min(userInput.scrollHeight, 150) + 'px';
+            });
+            userInput.addEventListener('keydown', e => {
+                if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); if (!sendBtn.disabled) send(); }
+            });
+            sendBtn.addEventListener('click', send);
+
+            // ═══ SEND ═══
+            async function send() {
+                const text = userInput.value.trim();
+                if (!text) return;
+
+                if (!activeId) {
+                    const s = { id: crypto.randomUUID(), title: text.length > 42 ? text.slice(0, 42) + '…' : text, createdAt: Date.now(), messages: [] };
+                    sessions.push(s);
+                    activeId = s.id;
+                    chatTitle.textContent = s.title;
+                }
+
+                const es = document.getElementById('emptyState');
+                if (es) es.remove();
+
+                addBubble('user', text, Date.now());
+                userInput.value = '';
+                userInput.style.height = 'auto';
+                sendBtn.disabled = true;
+
+                const typing = showTyping();
+                try {
+                    const res = await fetch('/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ query: text }) });
+                    const data = await res.json();
+                    typing.remove();
+                    addBubble('bot', data.answer || 'Something went wrong. Please try again.', Date.now());
+                } catch {
+                    typing.remove();
+                    addBubble('bot', 'Could not reach the server. Please try again shortly.', Date.now());
+                }
+            }
+
+            // ═══ BUBBLES ═══
+            function addBubble(role, text, ts) {
+                renderBubble(role, text, ts, true);
+                const s = sessions.find(x => x.id === activeId);
+                if (s) { s.messages.push({ role, text, ts }); saveSessions(); }
+                renderSessions();
+            }
+            function renderBubble(role, text, ts, animate) {
+                const wrap = document.createElement('div');
+                wrap.className = `msg-wrap msg-wrap--${role}` + (animate ? ' msg-enter' : '');
+                const bubble = document.createElement('div');
+                bubble.className = `msg msg--${role}`;
+                bubble.textContent = text;
+                const time = document.createElement('span');
+                time.className = 'msg-time';
+                time.textContent = formatTime(ts);
+                wrap.appendChild(bubble);
+                wrap.appendChild(time);
+                chatArea.appendChild(wrap);
+                scrollBottom();
+            }
+            function showTyping() {
+                const el = document.createElement('div');
+                el.className = 'typing-wrap';
+                el.innerHTML = '<div class="typing"><span class="typing-dot"></span><span class="typing-dot"></span><span class="typing-dot"></span></div>';
+                chatArea.appendChild(el);
+                scrollBottom();
+                return el;
+            }
+
+            // ═══ HELPERS ═══
+            function scrollBottom() { requestAnimationFrame(() => chatArea.scrollTop = chatArea.scrollHeight); }
+            function escHtml(t) { return t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+            function formatDate(ts) { if (!ts) return ''; return new Date(ts).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }); }
+            function formatTime(ts) { return new Date(ts).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }); }
+
+            renderSessions();
+        })();
     </script>
 
 </body>
