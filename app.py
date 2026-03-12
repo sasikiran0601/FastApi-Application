@@ -75,7 +75,7 @@ async def chat(body: ChatRequest):
     # The n8n Rag Question node accesses: {{ $json.body.query }}
     # The n8n AI Agent prompt accesses:   {{ $json.body }}
     # Both are satisfied by sending: {"query": "<user question>"}
-    payload = {"query": query22}
+    payload = {"query": query}
 
     try:
         async with httpx.AsyncClient(timeout=60.0) as client:
