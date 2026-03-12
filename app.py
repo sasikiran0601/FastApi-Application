@@ -2,11 +2,12 @@ from fastapi import FastAPI, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import JSONResponse
 from pydantic import BaseModel
-from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
+from uvicorn.middleware.proxy_headers import (
+    ProxyHeadersMiddleware,
+)
 
-import httpx  # async HTTP client — does NOT block the event loop
+import httpx
 
 app = FastAPI()
 
@@ -26,12 +27,17 @@ app.add_middleware(
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
 
+
 # Request body model
 class ChatRequest(BaseModel):
     query: str
 
-# n8n webhook URL — matches the Webhook node path in the workflow
-WEBHOOK = "https://n8n.n8nautomations.me/webhook/51b66e9e-15d3-4418-a304-030d357e35a2"
+
+# n8n webhook URL
+WEBHOOK = (
+    "https://n8n.n8nautomations.me/webhook/"
+    "51b66e9e-15d3-4418-a304-030d357e35a2"
+)
 
 
 def extract_answer(result) -> str:
@@ -52,8 +58,12 @@ def extract_answer(result) -> str:
         result = result[0] if result else {}
 
     if isinstance(result, dict):
-        # Primary key returned by the "Respond to Webhook" node
-        answer = result.get("output") or result.get("answer") or result.get("text", "")
+        # Primary key returned by "Respond to Webhook" node
+        answer = (
+            result.get("output")
+            or result.get("answer")
+            or result.get("text", "")
+        )
         return str(answer) if answer else str(result)
 
     return str(result)
@@ -85,9 +95,13 @@ async def chat(body: ChatRequest):
 
         # Surface n8n errors clearly instead of silently swallowing them
         if resp.status_code not in (200, 201):
+            detail = (
+                f"n8n webhook returned HTTP "
+                f"{resp.status_code}: {resp.text[:200]}"
+            )
             raise HTTPException(
                 status_code=502,
-                detail=f"n8n webhook returned HTTP {resp.status_code}: {resp.text[:200]}"
+                detail=detail,
             )
 
         try:
@@ -101,7 +115,11 @@ async def chat(body: ChatRequest):
 
     except httpx.TimeoutException:
         print("ERROR: n8n webhook timed out")
-        raise HTTPException(status_code=504, detail="The AI backend took too long to respond. Please try again.")
+        raise HTTPException(
+            status_code=504,
+            detail="The AI backend took too long. "
+                   "Please try again.",
+        )
 
     except HTTPException:
         raise  # re-raise our own 502/504
@@ -113,4 +131,7 @@ async def chat(body: ChatRequest):
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("app:app", host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run(
+        "app:app", host="0.0.0.0",
+        port=8000, reload=True,
+    )
